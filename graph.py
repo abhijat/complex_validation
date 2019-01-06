@@ -16,9 +16,10 @@ class Graph(object):
 
     def add_path(self, elements):
 
-        node = self.find_prefix_node(elements)
-        if not node:
-            node = self.root
+        prefix, node = self.find_prefix_node(elements)
+
+        if prefix:
+            elements = elements[len(prefix):]
 
         for element in elements:
             node[element] = {}
@@ -40,20 +41,21 @@ class Graph(object):
         return routes
 
     def find_prefix_node(self, route):
-        return self._prefix_node(route, node=self.root)
+        return self._prefix_node(route, node=self.root, matched_prefix=[])
 
-    def _prefix_node(self, route, node):
+    def _prefix_node(self, route, node, matched_prefix):
         if not route:
-            return node
+            return SearchResult(matched_prefix, node)
 
         head = route[0]
         route = route[1:]
 
-        node = node.get(head, None)
-        if not node:
-            return None
+        child_node = node.get(head, None)
+        if not child_node:
+            return SearchResult(matched_prefix, node)
         else:
-            return self._prefix_node(route, node)
+            matched_prefix.append(head)
+            return self._prefix_node(route, child_node, matched_prefix)
 
     def _traverse(self, key, node, route, routes):
         if key in node:
@@ -113,8 +115,9 @@ class GraphTest(TestCase):
         self.assertListEqual([1, 919], routes[1].route)
 
     def test_find_prefix(self):
-        n = self.g.find_prefix_node([1, 2, 3])
-        self.assertDictEqual({4: {}}, n)
+        prefix, node = self.g.find_prefix_node([1, 2, 3])
+        self.assertDictEqual({4: {}}, node)
+        self.assertListEqual([1, 2, 3], prefix)
 
     def test_add_prefixed_path_results_in_single_path(self):
         self.g.add_path([1024, 4096])
